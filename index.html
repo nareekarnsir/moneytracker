@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#B9DEE7">
+<title>Money Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:    #B9DEE7;
+  --bg2:   #A6D3DE;
+  --ink:   #2E3A3B;
+  --ink2:  #46555A;
+  --paper: #F7F5EC;
+  --white: #FFFFFF;
+  --muted: #7E9298;
+  --f:     'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --st: env(safe-area-inset-top, 0px);
+  --sb: env(safe-area-inset-bottom, 0px);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: var(--f);
+  background: var(--bg);
+  color: var(--ink);
+  height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+#root {
+  height: 100vh;
+  height: 100dvh;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* ── header ── */
+.app-top {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(var(--st) + 14px) 18px 6px;
+}
+.month-title {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  white-space: nowrap;
+}
+.round-btn {
+  width: 36px; height: 36px;
+  border-radius: 50%; border: none; cursor: pointer;
+  background: var(--white); color: var(--ink);
+  font-size: 20px; line-height: 1;
+  display: grid; place-items: center;
+  font-family: var(--f);
+  box-shadow: 0 2px 5px rgba(30,40,41,.16);
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .12s;
+}
+.round-btn:active { transform: scale(.88); }
+
+/* ── scrollable body ── */
+.app-body {
+  flex: 1; min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.app-body::-webkit-scrollbar { width: 0; }
+
+/* ── bottom nav ── */
+.bottom-nav {
+  flex: 0 0 auto;
+  display: flex;
+  background: var(--bg2);
+  border-top: 1px solid rgba(46,58,59,.12);
+}
+.nav-tab {
+  flex: 1; background: transparent; border: none; cursor: pointer;
+  font-family: var(--f); font-size: 13px; color: var(--ink2);
+  padding: 16px 4px calc(16px + var(--sb));
+  letter-spacing: .01em;
+  -webkit-tap-highlight-color: transparent;
+}
+.nav-tab.active {
+  color: var(--ink); font-weight: 600;
+  background: var(--bg);
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+.nav-add {
+  display: flex; align-items: center; justify-content: center;
+  padding: 8px 4px calc(8px + var(--sb));
+}
+.nav-add-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--ink); color: #F3F7EF;
+  font-weight: 600; font-size: 14px; letter-spacing: .02em;
+  padding: 10px 20px; border-radius: 999px;
+  box-shadow: 0 3px 8px rgba(30,40,41,.22);
+  transition: transform .12s;
+}
+.nav-add:active .nav-add-pill { transform: scale(.93); }
+
+/* ── screen layout ── */
+.screen {
+  min-height: 100%;
+  display: flex; flex-direction: column;
+  padding: 4px 18px 20px;
+}
+
+/* ── fullscreen overlay ── */
+.overlay {
+  position: absolute; inset: 0;
+  background: var(--bg); z-index: 20;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── buttons ── */
+.btn {
+  background: var(--ink); color: #F3F7EF;
+  border: none; cursor: pointer;
+  font-family: var(--f); font-weight: 600; font-size: 15px; letter-spacing: .04em;
+  padding: 14px 20px; border-radius: 12px;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .12s;
+}
+.btn:active { transform: scale(.97); }
+.btn.block { width: 100%; }
+.btn.disabled, .btn:disabled { background: #92AAB0; color: #E6EEEC; cursor: not-allowed; transform: none; }
+.btn-ghost {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--ink2); font-family: var(--f); font-weight: 500; font-size: 14.5px;
+  padding: 14px 16px;
+}
+.btn-outline {
+  flex: 1; background: var(--white); color: var(--ink); border: none; cursor: pointer;
+  font-family: var(--f); font-weight: 600; font-size: 14px; letter-spacing: .02em;
+  padding: 14px 12px; border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(30,40,41,.12);
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .12s;
+}
+.btn-outline:active { transform: scale(.97); }
+.btn-outline.disabled, .btn-outline:disabled {
+  background: rgba(255,255,255,.45); color: #9bb0b5;
+  cursor: not-allowed; box-shadow: none; transform: none;
+}
+.btn-delete {
+  background: transparent; border: none; cursor: pointer;
+  color: #B5524B; font-family: var(--f); font-weight: 500; font-size: 14.5px;
+  padding: 14px 14px; margin-right: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── photo tile ── */
+.photo-wrap { display: flex; justify-content: center; }
+.photo-tile {
+  position: relative; background: var(--white); border-radius: 9px;
+  display: grid; place-items: center; line-height: 1;
+  box-shadow: 0 3px 8px rgba(30,40,41,.16); overflow: visible;
+}
+.photo-tile img { width: 100%; height: 100%; object-fit: cover; border-radius: 9px; }
+.select-ring {
+  position: absolute; inset: -16% -14%; width: 128%; height: 128%;
+  overflow: visible; pointer-events: none;
+}
+
+/* ── toggle ── */
+.dash-toggle {
+  display: flex; align-items: center; justify-content: flex-end;
+  gap: 8px; padding: 4px 2px; font-size: 14px; color: var(--muted);
+}
+.dash-toggle .on { color: var(--ink); font-weight: 600; }
+.switch {
+  width: 44px; height: 22px; border-radius: 999px; border: none; cursor: pointer;
+  background: var(--ink); position: relative; padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.switch .knob {
+  position: absolute; top: 3px; left: 3px; width: 16px; height: 16px;
+  border-radius: 50%; background: #F3F7EF;
+  transition: left .18s cubic-bezier(.22,.61,.36,1);
+}
+.switch.right .knob { left: 25px; }
+
+/* ── donut ── */
+.donut-wrap { display: flex; justify-content: center; padding: 4px 0 10px; }
+.donut-stage { position: relative; }
+.donut-svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 4px 10px rgba(30,40,41,.1)); }
+.donut-center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 4px; text-align: center; pointer-events: none;
+}
+.donut-label { font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink2); max-width: 100px; line-height: 1.4; }
+.donut-total { font-size: 28px; font-weight: 700; color: var(--ink); line-height: 1; letter-spacing: -.01em; }
+
+/* ── legend ── */
+.dash-legend {
+  background: var(--white); border-radius: 16px;
+  box-shadow: 0 3px 10px rgba(30,40,41,.12);
+  padding: 4px 6px; display: flex; flex-direction: column;
+}
+.legend-empty { text-align: center; color: var(--ink2); font-size: 13px; line-height: 1.6; padding: 20px 10px; }
+.legend-row {
+  display: flex; align-items: center; gap: 10px; padding: 11px 8px;
+  background: none; border: none; width: 100%;
+  font-family: var(--f); cursor: pointer; border-radius: 10px;
+  -webkit-tap-highlight-color: transparent;
+}
+.legend-row + .legend-row { border-top: 1px solid rgba(46,58,59,.08); }
+.legend-row:active { background: rgba(46,58,59,.05); }
+.legend-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+.legend-name { flex: 1; text-align: left; font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.legend-count { font-size: 11.5px; color: var(--muted); min-width: 14px; text-align: right; }
+.legend-val { font-size: 13px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.legend-chev { color: var(--muted); font-size: 17px; }
+
+/* ── add expense ── */
+.add-wrap { display: flex; flex-direction: column; height: 100%; }
+.add-top {
+  display: flex; align-items: center;
+  padding: calc(var(--st) + 14px) 18px 6px;
+  flex: 0 0 auto;
+}
+.add-title { flex: 1; font-size: 17px; font-weight: 600; text-align: center; }
+.scatter { position: relative; flex: 1; min-height: 0; }
+.scatter-item {
+  position: absolute; transform: translate(-50%, -50%);
+  background: none; border: none; cursor: pointer; padding: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  -webkit-tap-highlight-color: transparent;
+}
+.scatter-item:active { transform: translate(-50%, -50%) scale(.9); }
+.scatter-label {
+  background: var(--white); border-radius: 999px; padding: 3px 9px;
+  font-size: 11px; font-weight: 500; color: var(--ink);
+  box-shadow: 0 2px 5px rgba(30,40,41,.12); white-space: nowrap;
+}
+.amount-box {
+  position: absolute; top: 46%; left: 50%; transform: translate(-50%, -50%);
+  display: flex; align-items: center; justify-content: center; gap: 2px;
+  pointer-events: none; padding: 20px;
+}
+.amount-baht, .amount-input {
+  font-family: var(--f); font-weight: 700; font-size: 54px; color: var(--ink); line-height: 1;
+}
+.amount-input {
+  border: none; background: transparent; outline: none;
+  width: 3.2ch; text-align: left; pointer-events: auto;
+  caret-color: var(--ink); padding: 0;
+}
+.amount-input::placeholder { color: #8AA3A9; }
+
+.queue-strip { display: flex; gap: 8px; overflow-x: auto; padding: 2px 18px 8px; }
+.queue-strip::-webkit-scrollbar { height: 0; }
+.queue-chip {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 5px;
+  background: var(--white); border: none; cursor: pointer;
+  border-radius: 999px; padding: 6px 11px;
+  font-family: var(--f); font-size: 12.5px; font-weight: 600; color: var(--ink);
+  box-shadow: 0 2px 5px rgba(30,40,41,.12);
+  -webkit-tap-highlight-color: transparent;
+}
+.queue-x { color: var(--muted); font-size: 15px; }
+
+.add-note { padding: 0 18px; }
+.note-input {
+  width: 100%; resize: none;
+  font-family: var(--f); font-size: 13px; line-height: 1.5;
+  color: var(--ink); background: var(--white);
+  border: 1px solid rgba(46,58,59,.12); border-radius: 12px;
+  padding: 11px 13px; outline: none;
+  box-shadow: 0 2px 6px rgba(30,40,41,.07);
+}
+.note-input:focus { border-color: var(--ink); }
+
+.add-foot {
+  padding: 10px 18px calc(18px + var(--sb));
+  display: flex; gap: 10px;
+}
+.add-foot .btn { flex: 1; }
+
+/* ── receipt ── */
+.receipt-wrap { display: flex; justify-content: center; padding: 4px 0 8px; }
+.receipt {
+  width: min(300px, 100%);
+  background: var(--paper); color: #23292a;
+  padding: 22px 20px 16px; font-size: 12px; line-height: 1.45;
+  box-shadow: 0 8px 24px rgba(30,40,41,.18);
+  -webkit-mask:
+    radial-gradient(5px at 5px 50%, transparent 98%, #000) repeat-y left/100% 12px,
+    radial-gradient(5px at calc(100% - 5px) 50%, transparent 98%, #000) repeat-y right/100% 12px;
+  mask:
+    radial-gradient(5px at 5px 50%, transparent 98%, #000) repeat-y left/100% 12px,
+    radial-gradient(5px at calc(100% - 5px) 50%, transparent 98%, #000) repeat-y right/100% 12px;
+}
+.r-head { text-align: center; }
+.r-title { font-size: 13.5px; font-weight: 700; letter-spacing: .02em; line-height: 1.2; }
+.r-date { font-size: 10px; letter-spacing: .16em; margin-top: 5px; color: #4a5354; }
+.r-rule { border-top: 1.5px dashed #9aa3a2; margin: 10px 0; }
+.r-cols { display: grid; grid-template-columns: 28px 1fr auto; font-weight: 700; font-size: 10.5px; letter-spacing: .06em; }
+.r-items { display: flex; flex-direction: column; gap: 8px; }
+.r-row { display: grid; grid-template-columns: 28px 1fr auto; align-items: baseline; gap: 4px; font-size: 11.5px; }
+.r-n { font-variant-numeric: tabular-nums; }
+.r-name { text-transform: uppercase; letter-spacing: .02em; }
+.r-amt { text-align: right; font-variant-numeric: tabular-nums; }
+.r-total { font-weight: 700; letter-spacing: .04em; }
+.r-empty { text-align: center; color: #7c8584; letter-spacing: .06em; padding: 8px 0; font-size: 11px; }
+.barcode { display: flex; align-items: flex-end; justify-content: center; gap: 1px; height: 38px; margin: 12px 0 6px; }
+.barcode span { display: block; height: 100%; }
+.r-foot { text-align: center; font-size: 9px; letter-spacing: .12em; color: #4a5354; }
+
+/* ── categories ── */
+.cats-screen { padding: 4px 18px calc(16px + var(--sb)); }
+.cats-top { display: flex; align-items: center; justify-content: space-between; padding: 6px 2px 12px; }
+.cats-title { font-size: 12.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink2); }
+.cats-add-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--ink); color: #F3F7EF; border: none; cursor: pointer;
+  font-family: var(--f); font-weight: 600; font-size: 13px; letter-spacing: .02em;
+  padding: 8px 14px; border-radius: 999px;
+  box-shadow: 0 2px 6px rgba(30,40,41,.18); white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+.cats-add-btn:active { transform: scale(.94); }
+.cats-list { display: flex; flex-direction: column; }
+.cat-row {
+  display: flex; align-items: center; gap: 13px; padding: 14px 2px;
+  border-bottom: 1px solid rgba(46,58,59,.1);
+  width: 100%; background: none;
+  border-left: none; border-right: none; border-top: none;
+  font-family: var(--f); text-align: left; cursor: pointer; border-radius: 10px;
+  -webkit-tap-highlight-color: transparent;
+}
+.cat-row:active { background: rgba(255,255,255,.4); }
+.cat-chevron { flex: 0 0 auto; font-size: 18px; color: var(--muted); }
+.cat-left { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 56px; flex: 0 0 auto; }
+.cat-name { font-size: 10.5px; color: var(--ink2); text-align: center; line-height: 1.15; }
+.cat-right { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.cat-figs { display: flex; align-items: baseline; justify-content: space-between; }
+.cat-amt { font-size: 14.5px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.cat-pct { font-size: 12.5px; color: var(--ink2); font-variant-numeric: tabular-nums; }
+.cat-bar { height: 8px; border-radius: 999px; background: rgba(255,255,255,.55); overflow: hidden; }
+.cat-bar span { display: block; height: 100%; border-radius: 999px; transition: width .3s ease-out; }
+
+/* ── category detail ── */
+.catdet { display: flex; flex-direction: column; height: 100%; padding-top: var(--st); }
+.catdet-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px 8px; flex: 0 0 auto;
+}
+.catdet-title { font-size: 17px; font-weight: 600; color: var(--ink); text-align: center; flex: 1; min-width: 0; }
+.catdet-tabs { display: flex; gap: 6px; padding: 4px 18px 10px; flex: 0 0 auto; }
+.catdet-tab {
+  flex: 1; background: transparent; border: none; cursor: pointer;
+  font-family: var(--f); font-size: 13px; color: var(--ink2);
+  padding: 9px 4px; border-radius: 10px;
+  -webkit-tap-highlight-color: transparent;
+}
+.catdet-tab.active { background: var(--ink); color: #F3F7EF; font-weight: 600; }
+.catdet-body { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 18px calc(20px + var(--sb)); }
+.catdet-body::-webkit-scrollbar { width: 0; }
+.catdet-body .receipt-wrap { padding-left: 0; padding-right: 0; }
+.catdet-card {
+  background: var(--white); border-radius: 16px; padding: 16px;
+  box-shadow: 0 3px 10px rgba(30,40,41,.12); margin-bottom: 14px;
+}
+.catdet-stat { display: flex; align-items: center; gap: 13px; }
+.catdet-figs { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.catdet-amt { font-size: 22px; font-weight: 700; color: var(--ink); line-height: 1; }
+.catdet-budget { font-size: 12px; color: var(--ink2); }
+.catdet-divider { border-top: 1px solid rgba(46,58,59,.1); margin: 14px 0 4px; }
+.catdet-edit { display: flex; flex-direction: column; gap: 8px; }
+.catdet-edit .emoji-grid { grid-template-columns: repeat(6,1fr); }
+
+/* ── modal sheet ── */
+.modal-scrim {
+  position: absolute; inset: 0;
+  background: rgba(30,40,41,.42);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: flex-end; z-index: 30;
+  animation: fade .18s ease-out;
+}
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+.sheet {
+  width: 100%; background: #F3F7EF;
+  border-radius: 22px 22px 0 0;
+  padding: 22px 22px calc(22px + var(--sb));
+  display: flex; flex-direction: column; gap: 8px;
+  box-shadow: 0 -10px 30px rgba(30,40,41,.25);
+  animation: rise .22s cubic-bezier(.22,.61,.36,1);
+  max-height: 88vh; overflow-y: auto;
+}
+@keyframes rise { from { transform: translateY(40px); } to { transform: translateY(0); } }
+.sheet-title { font-size: 17px; font-weight: 600; margin: 0 0 4px; }
+.field-label { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-top: 8px; }
+.field {
+  font-family: var(--f); font-size: 14.5px; padding: 11px 13px; border-radius: 10px;
+  border: 1px solid #C6D4D6; background: #fff; color: var(--ink); outline: none; width: 100%;
+}
+.field:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(109,179,199,.25); }
+.emoji-grid { display: grid; grid-template-columns: repeat(9,1fr); gap: 6px; }
+.emoji-opt {
+  aspect-ratio: 1; border: 1.5px solid transparent; border-radius: 9px;
+  background: #fff; cursor: pointer; font-size: 17px;
+  display: grid; place-items: center;
+  box-shadow: 0 1px 2px rgba(30,40,41,.08);
+  -webkit-tap-highlight-color: transparent;
+}
+.emoji-opt.on { border-color: var(--ink); }
+.sheet-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin></script>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useMemo } = React;
+
+/* ──────────────────────────────────────────────────────
+   DATA STORE  (localStorage)
+────────────────────────────────────────────────────── */
+const LS = { cats: 'mt_cats_v1', exp: 'mt_exp_v1', ui: 'mt_ui_v1' };
+
+const DEF_CATS = [
+  { id:'food',   name:'Food & Drink',  icon:'🍞', color:'#4FC7BD', budget:25000 },
+  { id:'ent',    name:'Entertainment', icon:'💿', color:'#3D7A8E', budget:8000  },
+  { id:'matcha', name:'Matcha',        icon:'🍵', color:'#F178B6', budget:5000  },
+  { id:'groc',   name:'Groceries',     icon:'🍦', color:'#F4C84A', budget:30000 },
+  { id:'shop',   name:'Shopping',      icon:'🛍️', color:'#9B7BD4', budget:15000 },
+  { id:'bills',  name:'Bills',         icon:'🧮', color:'#6FA86B', budget:20000 },
+  { id:'gym',    name:'Gym',           icon:'🐱', color:'#E8852E', budget:6000  },
+];
+const COLORS = ['#4FC7BD','#F178B6','#F4C84A','#9B7BD4','#E8852E','#6FA86B','#3D7A8E','#E06B6B'];
+const EMOJIS = ['🍞','💿','🍵','🍦','🛍️','🧮','🐱','☕','🍜','🚕','🎬','💊','🌿','📚','✈️','🎁','💡','🏠'];
+
+const monthKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+const fmtBaht  = n => '฿' + Math.round(n).toLocaleString('en-US');
+const monthLabel = mk => {
+  const [y,m] = mk.split('-').map(Number);
+  return new Date(y,m-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+};
+const shiftMonth = (mk,d) => {
+  const [y,m] = mk.split('-').map(Number);
+  return monthKey(new Date(y,m-1+d,1));
+};
+
+function load(key,fallback){ try{ const r=localStorage.getItem(key); return r==null?fallback:JSON.parse(r); }catch{ return fallback; } }
+
+function seedExpenses(){
+  const now=new Date(); const y=now.getFullYear(),m=now.getMonth();
+  const mk=(day,cat,amount,note)=>({ id:'e'+Math.random().toString(36).slice(2,9), categoryId:cat, amount, note, date:new Date(y,m,day).toISOString() });
+  return [
+    mk(2,'food',320,'Morning toast & coffee'), mk(3,'matcha',180,'Ceremonial grade'),
+    mk(4,'groc',1240,'Weekly market run'), mk(6,'gym',600,'Day pass'),
+    mk(7,'food',450,'Dinner with friends'), mk(9,'shop',890,'New tote bag'),
+    mk(11,'matcha',160,'Iced matcha latte'), mk(12,'bills',2200,'Electricity'),
+    mk(14,'groc',760,'Produce & snacks'), mk(16,'food',210,'Lunch'),
+    mk(18,'ent',540,'Vinyl record'), mk(21,'food',380,'Brunch'), mk(23,'shop',1500,'Sneakers'),
+  ];
+}
+
+function useStore(){
+  const [cats,  setCats]  = useState(()=>load(LS.cats,DEF_CATS));
+  const [exps,  setExps]  = useState(()=>{ const e=localStorage.getItem(LS.exp); if(e==null){const s=seedExpenses();localStorage.setItem(LS.exp,JSON.stringify(s));return s;} return load(LS.exp,[]); });
+  const [ui,    setUi]    = useState(()=>load(LS.ui,{tab:'dashboard',month:monthKey(new Date()),unit:'pct'}));
+
+  useEffect(()=>{ localStorage.setItem(LS.cats,JSON.stringify(cats)); },[cats]);
+  useEffect(()=>{ localStorage.setItem(LS.exp, JSON.stringify(exps)); },[exps]);
+  useEffect(()=>{ localStorage.setItem(LS.ui,  JSON.stringify(ui));   },[ui]);
+
+  const setTab   = t  => setUi(u=>({...u,tab:t}));
+  const setUnit  = u  => setUi(v=>({...v,unit:u}));
+  const setMonth = m  => setUi(v=>({...v,month:m}));
+
+  const addExpense = useCallback((categoryId,amount,note)=>{
+    const [y,m]=ui.month.split('-').map(Number);
+    setExps(prev=>[...prev,{ id:'e'+Math.random().toString(36).slice(2,9), categoryId, amount:Number(amount), note:note||'', date:new Date(y,m-1,Math.min(28,new Date().getDate())).toISOString() }]);
+  },[ui.month]);
+
+  const addCategory    = useCallback(c=>{ setCats(p=>[...p,{id:'c'+Math.random().toString(36).slice(2,7),...c}]); },[]);
+  const updateCategory = useCallback((id,patch)=>setCats(p=>p.map(c=>c.id===id?{...c,...patch}:c)),[]);
+  const deleteCategory = useCallback(id=>{ setCats(p=>p.filter(c=>c.id!==id)); setExps(p=>p.filter(e=>e.categoryId!==id)); },[]);
+
+  const catById = useMemo(()=>Object.fromEntries(cats.map(c=>[c.id,c])),[cats]);
+  const monthExps = useMemo(()=>exps.filter(e=>monthKey(new Date(e.date))===ui.month),[exps,ui.month]);
+  const totals    = useMemo(()=>{ const t={}; cats.forEach(c=>{t[c.id]=0;}); monthExps.forEach(e=>{t[e.categoryId]=(t[e.categoryId]||0)+e.amount;}); return t; },[monthExps,cats]);
+  const grand     = useMemo(()=>Object.values(totals).reduce((a,b)=>a+b,0),[totals]);
+
+  return { cats, ui, catById, monthExps, totals, grand, setTab, setUnit, setMonth, addExpense, addCategory, updateCategory, deleteCategory };
+}
+
+/* ──────────────────────────────────────────────────────
+   SHARED COMPONENTS
+────────────────────────────────────────────────────── */
+function PhotoTile({cat,size=56,ring=false}){
+  return (
+    <div className="photo-wrap" style={{width:size}}>
+      <div className="photo-tile" style={{width:size,height:size,fontSize:size*.52}}>
+        {cat.img ? <img src={cat.img} alt={cat.name}/> : <span>{cat.icon}</span>}
+        {ring && <svg className="select-ring" viewBox="0 0 120 110">
+          <path d="M60 8 C92 6 113 26 112 55 C111 86 86 103 58 102 C28 101 8 82 9 53 C10 26 30 10 60 8"
+            fill="none" stroke="var(--ink)" strokeWidth="3" strokeLinecap="round"/>
+        </svg>}
+      </div>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────
+   DONUT CHART
+────────────────────────────────────────────────────── */
+function polar(cx,cy,r,deg){ const a=(deg-90)*Math.PI/180; return [cx+r*Math.cos(a),cy+r*Math.sin(a)]; }
+function ringArc(cx,cy,r,s,e){ const [x1,y1]=polar(cx,cy,r,s),[x2,y2]=polar(cx,cy,r,e); return `M ${x1} ${y1} A ${r} ${r} 0 ${e-s>180?1:0} 1 ${x2} ${y2}`; }
+
+function DonutChart({cats,totals,grand}){
+  const SZ=210,SW=15,R=(SZ-SW)/2-2,CX=SZ/2,CY=SZ/2;
+  const slices=cats.map(c=>({cat:c,v:totals[c.id]||0})).filter(s=>s.v>0).sort((a,b)=>b.v-a.v);
+  if(!slices.length) return (
+    <div className="donut-stage" style={{width:SZ,height:SZ}}>
+      <svg viewBox={`0 0 ${SZ} ${SZ}`} className="donut-svg">
+        <circle cx={CX} cy={CY} r={R} fill="none" stroke="rgba(255,255,255,.5)" strokeWidth={SW}/>
+      </svg>
+      <div className="donut-center">
+        <span className="donut-label">No spending yet</span>
+        <span className="donut-total">{fmtBaht(0)}</span>
+      </div>
+    </div>
+  );
+  let acc=0;
+  const arcs=slices.map(s=>{ const frac=s.v/grand,start=acc*360,end=(acc+frac)*360; acc+=frac; return {...s,start,end,frac}; });
+  const single=arcs.length===1,GAP=single?0:4;
+  return (
+    <div className="donut-stage" style={{width:SZ,height:SZ}}>
+      <svg viewBox={`0 0 ${SZ} ${SZ}`} className="donut-svg">
+        <circle cx={CX} cy={CY} r={R} fill="none" stroke="rgba(255,255,255,.5)" strokeWidth={SW}/>
+        {single && <circle cx={CX} cy={CY} r={R} fill="none" stroke={arcs[0].cat.color} strokeWidth={SW}/>}
+        {!single && arcs.map(a=>{ const s=a.start+GAP/2,e=a.end-GAP/2; if(e<=s)return null;
+          return <path key={a.cat.id} d={ringArc(CX,CY,R,s,e)} fill="none" stroke={a.cat.color} strokeWidth={SW} strokeLinecap="round"/>; })}
+      </svg>
+      <div className="donut-center">
+        <span className="donut-label">Total spent this month</span>
+        <span className="donut-total">{fmtBaht(grand)}</span>
+      </div>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────
+   DASHBOARD
+────────────────────────────────────────────────────── */
+function Dashboard({store,onOpenCat}){
+  const {cats,totals,grand,monthExps,ui,setUnit}=store;
+  const counts={};
+  monthExps.forEach(e=>{counts[e.categoryId]=(counts[e.categoryId]||0)+1;});
+  const legend=cats.map(c=>({cat:c,v:totals[c.id]||0,n:counts[c.id]||0})).filter(s=>s.v>0).sort((a,b)=>b.v-a.v);
+  return (
+    <div className="screen">
+      <div className="dash-toggle">
+        <span className={ui.unit==='pct'?'on':''}>%</span>
+        <button className={'switch'+(ui.unit==='baht'?' right':'')} onClick={()=>setUnit(ui.unit==='pct'?'baht':'pct')}>
+          <span className="knob"/>
+        </button>
+        <span className={ui.unit==='baht'?'on':''}>฿</span>
+      </div>
+      <div className="donut-wrap">
+        <DonutChart cats={cats} totals={totals} grand={grand}/>
+      </div>
+      <div className="dash-legend">
+        {legend.length===0 && <div className="legend-empty">No spending this month.<br/>Tap <strong>+ Add</strong> to start.</div>}
+        {legend.map(({cat,v,n})=>{
+          const pct=grand?Math.round(v/grand*100):0;
+          return (
+            <button className="legend-row" key={cat.id} onClick={()=>onOpenCat(cat)}>
+              <span className="legend-dot" style={{background:cat.color}}/>
+              <PhotoTile cat={cat} size={28}/>
+              <span className="legend-name">{cat.name}</span>
+              <span className="legend-count">{n}</span>
+              <span className="legend-val">{ui.unit==='pct'?pct+'%':fmtBaht(v)}</span>
+              <span className="legend-chev">›</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────
+   ADD EXPENSE
+────────────────────────────────────────────────────── */
+const POS=[{t:12,l:50},{t:24,l:22},{t:30,l:76},{t:54,l:20},{t:57,l:77},{t:71,l:27},{t:74,l:57},{t:29,l:47},{t:65,l:46}];
+
+function AddExpense({store,onDone,onBack}){
+  const {cats,addExpense,catById}=store;
+  const [sel,setSel]=useState(null);
+  const [amt,setAmt]=useState('');
+  const [note,setNote]=useState('');
+  const [queue,setQueue]=useState([]);
+  const num=parseInt(amt||'0',10)||0;
+  const ready=num>0&&sel;
+
+  const reset=()=>{setSel(null);setAmt('');setNote('');};
+  const stage=()=>{ if(!ready)return; setQueue(q=>[...q,{key:'q'+Math.random().toString(36).slice(2,8),categoryId:sel,amount:num,note:note.trim()}]); reset(); };
+  const remove=k=>setQueue(q=>q.filter(i=>i.key!==k));
+  const saveAll=()=>{
+    const all=ready?[...queue,{categoryId:sel,amount:num,note:note.trim()}]:queue;
+    if(!all.length)return;
+    all.forEach(i=>addExpense(i.categoryId,i.amount,i.note));
+    onDone();
+  };
+  const count=queue.length+(ready?1:0);
+  const total=queue.reduce((s,i)=>s+i.amount,0)+(ready?num:0);
+
+  return (
+    <div className="add-wrap">
+      <div className="add-top">
+        <button className="round-btn" onClick={onBack}>‹</button>
+        <span className="add-title">Add Expense</span>
+        <span style={{width:36}}/>
+      </div>
+
+      <div className="scatter">
+        {cats.map((c,i)=>{ const p=POS[i%POS.length]; return (
+          <button key={c.id} className="scatter-item" style={{top:p.t+'%',left:p.l+'%'}} onClick={()=>setSel(c.id)}>
+            <PhotoTile cat={c} size={56} ring={sel===c.id}/>
+            <span className="scatter-label">{c.name}</span>
+          </button>
+        );})}
+        <div className="amount-box">
+          <span className="amount-baht">฿</span>
+          <input className="amount-input" inputMode="numeric" pattern="[0-9]*"
+            value={amt} placeholder="0"
+            onChange={e=>setAmt(e.target.value.replace(/[^0-9]/g,'').slice(0,7))}/>
+        </div>
+      </div>
+
+      {queue.length>0 && <div className="queue-strip">
+        {queue.map(i=>{ const c=catById[i.categoryId]; return (
+          <button key={i.key} className="queue-chip" onClick={()=>remove(i.key)}>
+            <span>{c?c.icon:'•'}</span>
+            <span>฿{i.amount.toLocaleString('en-US')}</span>
+            <span className="queue-x">×</span>
+          </button>
+        );})}
+      </div>}
+
+      <div className="add-note">
+        <textarea className="note-input" rows="2" maxLength="120"
+          value={note} onChange={e=>setNote(e.target.value)}
+          placeholder="Add a note…"/>
+      </div>
+
+      <div className="add-foot">
+        <button className={'btn-outline'+(ready?'':' disabled')} disabled={!ready} onClick={stage}>+ Add another</button>
+        <button className={'btn'+(count>0?'':' disabled')} disabled={count===0} onClick={saveAll}>
+          {count>1?`Save ${count} · ฿${total.toLocaleString('en-US')}`:'Save'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────
+   RECEIPT
+────────────────────────────────────────────────────── */
+function barBars(){ let s=7,w=[]; for(let i=0;i<48;i++){s=(s*9301+49297)%233280;w.push(1+s%4);} return w; }
+
+function Receipt({title,date,items,catById,width=300,showCat=true}){
+  const bars=useMemo(barBars,[]);
+  const total=items.reduce((s,e)=>s+e.amount,0);
+  return (
+    <div className="receipt" style={{width:Math.min(width,300)+'px'}}>
+      <div className="r-head">
+        <div className="r-title" dangerouslySetInnerHTML={{__html:title}}/>
+        <div className="r-date">{date}</div>
+      </div>
+      <div className="r-rule"/>
+      <div className="r-cols"><span>QTY</span><span>ITEM</span><span className="r-amt">฿</span></div>
+      <div className="r-rule"/>
+      <div className="r-items">
+        {items.length===0 && <div className="r-empty">— NOTHING YET —</div>}
+        {items.map((e,i)=>{ const c=catById[e.categoryId]; const name=c?c.name:'Other'; const label=showCat?name+(e.note?' · '+e.note:''):e.note||name;
+          return (<div className="r-row" key={e.id}>
+            <span className="r-n">{String(i+1).padStart(2,'0')}</span>
+            <span className="r-name">{label}</span>
+            <span className="r-amt">{Math.round(e.amount).toLocaleString('en-US')}</span>
+          </div>);
+        })}
+      </div>
+      <div className="r-rule"/>
+      <div className="r-row r-total"><span/><span className="r-name">TOTAL</span><span className="r-amt">฿{Math.round(total).toLocaleString('en-US')}</span></div>
+      <div className="r-rule"/>
+      <div className="barcode">{bars.map((w,i)=><span key={i} style={{width:w,background:i%2?'transparent':'var(--ink)'}}/>)}</div>
+      <div className="r-foot">THANKS FOR TRACKING ✦ SEE YOU TOMORROW</div>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────
+   CATEGORY DETAIL
+────────────────────────────────────────────────────── */
+function CategoryDetail({store,cat:initCat,initialTab='details',onBack}){
+  const {monthExps,catById,updateCategory,deleteCategory,totals,ui}=store;
+  const cat=catById[initCat.id]||initCat;
+  const [name,setName]=useState(cat.name);
+  const [icon,setIcon]=useState(cat.icon);
+  const [budget,setBudget]=useState(cat.budget?String(cat.budget):'');
+  const [tab,setTab]=useState(initialTab);
+
+  const items=monthExps.filter(e=>e.categoryId===cat.id).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const spent=totals[cat.id]||0;
+  const pct=cat.budget?Math.min(100,Math.round(spent/cat.budget*100)):0;
+  const ok=name.trim().length>0;
+
+  const save=()=>{ if(!ok)return; updateCategory(cat.id,{name:name.trim(),icon,budget:parseInt(budget||'0',10)}); onBack(); };
+  const remove=()=>{ deleteCategory(cat.id); onBack(); };
+
+  return (
+    <div className="catdet">
+      <div className="catdet-head">
+        <button className="round-btn" onClick={onBack}>‹</button>
+        <span className="catdet-title">{cat.name}</span>
+        <span style={{width:36}}/>
+      </div>
+      <div className="catdet-tabs">
+        <button className={'catdet-tab'+(tab==='details'?' active':'')} onClick={()=>setTab('details')}>Details</button>
+        <button className={'catdet-tab'+(tab==='history'?' active':'')} onClick={()=>setTab('history')}>History</button>
+      </div>
+      <div className="catdet-body">
+        {tab==='details' && <div className="catdet-card">
+          <div className="catdet-stat">
+            <PhotoTile cat={{...cat,icon}} size={52}/>
+            <div className="catdet-figs">
+              <span className="catdet-amt">{fmtBaht(spent)}</span>
+              <span className="catdet-budget">of {cat.budget?fmtBaht(cat.budget):'—'} · {pct}%</span>
+              <div className="cat-bar"><span style={{width:pct+'%',background:cat.color}}/></div>
+            </div>
+          </div>
+          <div className="catdet-divider"/>
+          <div className="catdet-edit">
+            <label className="field-label">Name</label>
+            <input className="field" value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Coffee"/>
+            <label className="field-label">Icon</label>
+            <div className="emoji-grid">
+              {EMOJIS.map(e=><button key={e} className={'emoji-opt'+(icon===e?' on':'')} onClick={()=>setIcon(e)}>{e}</button>)}
+            </div>
+            <label className="field-label">Monthly budget (฿)</label>
+            <input className="field" inputMode="numeric" value={budget} onChange={e=>setBudget(e.target.value.replace(/[^0-9]/g,''))} placeholder="10000"/>
+            <div className="sheet-actions">
+              <button className="btn-delete" onClick={remove}>Delete</button>
+              <button className="btn-ghost" onClick={onBack}>Cancel</button>
+              <button className={'btn'+(ok?'':' disabled')} disabled={!ok} onClick={save}>Save</button>
+            </div>
+          </div>
+        </div>}
+        {tab==='history' && <div className="receipt-wrap">
+          <Receipt title={cat.name.toUpperCase()+'<br/>THIS MONTH'} date={monthLabel(ui.month).toUpperCase()} items={items} catById={catById} showCat={false}/>
+        </div>}
+      </div>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────
+   CATEGORIES LIST
+────────────────────────────────────────────────────── */
+function Categories({store,onAdd,onEdit}){
+  const {cats,totals}=store;
+  return (
+    <div className="screen cats-screen">
+      <div className="cats-top">
+        <span className="cats-title">Categories</span>
+        <button className="cats-add-btn" onClick={onAdd}>+ New</button>
+      </div>
+      <div className="cats-list">
+        {cats.map(c=>{ const spent=totals[c.id]||0; const pct=c.budget?Math.min(100,Math.round(spent/c.budget*100)):0; return (
+          <button className="cat-row" key={c.id} onClick={()=>onEdit(c)}>
+            <div className="cat-left"><PhotoTile cat={c} size={50}/><span className="cat-name">{c.name}</span></div>
+            <div className="cat-right">
+              <div className="cat-figs"><span className="cat-amt">{fmtBaht(spent)}</span><span className="cat-pct">{pct}%</span></div>
+              <div className="cat-bar"><span style={{width:pct+'%',background:c.color}}/></div>
+            </div>
+            <span className="cat-chevron">›</span>
+          </button>
+        );})}
+      </div>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────
+   NEW CATEGORY SHEET
+────────────────────────────────────────────────────── */
+function NewCategorySheet({onClose,onSave}){
+  const [name,setName]=useState('');
+  const [icon,setIcon]=useState('🌿');
+  const [budget,setBudget]=useState('');
+  const ok=name.trim().length>0;
+  const save=()=>{ if(!ok)return; onSave({name:name.trim(),icon,budget:parseInt(budget||'10000',10)}); onClose(); };
+  return (
+    <div className="modal-scrim" onClick={onClose}>
+      <div className="sheet" onClick={e=>e.stopPropagation()}>
+        <h2 className="sheet-title">New category</h2>
+        <label className="field-label">Name</label>
+        <input className="field" value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Coffee" autoFocus/>
+        <label className="field-label">Icon</label>
+        <div className="emoji-grid">{EMOJIS.map(e=><button key={e} className={'emoji-opt'+(icon===e?' on':'')} onClick={()=>setIcon(e)}>{e}</button>)}</div>
+        <label className="field-label">Monthly budget (฿)</label>
+        <input className="field" inputMode="numeric" value={budget} onChange={e=>setBudget(e.target.value.replace(/[^0-9]/g,''))} placeholder="10000"/>
+        <div className="sheet-actions">
+          <button className="btn-ghost" onClick={onClose}>Cancel</button>
+          <button className={'btn'+(ok?'':' disabled')} disabled={!ok} onClick={save}>Add</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────
+   APP SHELL
+────────────────────────────────────────────────────── */
+function App(){
+  const store=useStore();
+  const {ui,setTab,setMonth}=store;
+  const [adding,setAdding]=useState(false);
+  const [newCat,setNewCat]=useState(false);
+  const [editCat,setEditCat]=useState(null);
+  const [detTab,setDetTab]=useState('details');
+
+  const openCat=(cat,tab='details')=>{ setDetTab(tab); setEditCat(cat); };
+  const fullscreen=adding||editCat;
+
+  return (
+    <>
+      {!fullscreen && (
+        <div className="app-top">
+          <button className="round-btn" onClick={()=>setMonth(shiftMonth(ui.month,-1))}>‹</button>
+          <span className="month-title">{monthLabel(ui.month)}</span>
+          <button className="round-btn" onClick={()=>setMonth(shiftMonth(ui.month,+1))}>›</button>
+        </div>
+      )}
+
+      <div className="app-body">
+        {ui.tab==='categories'
+          ? <Categories store={store} onAdd={()=>setNewCat(true)} onEdit={c=>openCat(c,'details')}/>
+          : <Dashboard store={store} onOpenCat={c=>openCat(c,'history')}/>}
+      </div>
+
+      {!fullscreen && (
+        <nav className="bottom-nav">
+          <button className={'nav-tab'+(ui.tab==='dashboard'?' active':'')} onClick={()=>setTab('dashboard')}>Dashboard</button>
+          <button className="nav-tab nav-add" onClick={()=>setAdding(true)}>
+            <span className="nav-add-pill">+ Add</span>
+          </button>
+          <button className={'nav-tab'+(ui.tab==='categories'?' active':'')} onClick={()=>setTab('categories')}>Categories</button>
+        </nav>
+      )}
+
+      {adding && (
+        <div className="overlay">
+          <AddExpense store={store} onDone={()=>setAdding(false)} onBack={()=>setAdding(false)}/>
+        </div>
+      )}
+
+      {editCat && (
+        <div className="overlay">
+          <CategoryDetail store={store} cat={editCat} initialTab={detTab} onBack={()=>setEditCat(null)}/>
+        </div>
+      )}
+
+      {newCat && (
+        <NewCategorySheet
+          onClose={()=>setNewCat(false)}
+          onSave={c=>store.addCategory({...c,color:COLORS[Math.floor(Math.random()*COLORS.length)]})}/>
+      )}
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
